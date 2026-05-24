@@ -1,5 +1,4 @@
 import { isTwitchConfigured } from "@/lib/twitch-config";
-import { isYouTubeConfigured } from "@/lib/youtube-config";
 import { getTwitchLiveStatuses } from "@/lib/twitch";
 import { getYouTubeLatestVideoIds, getYouTubeLiveStatuses } from "@/lib/youtube";
 import type { Streamer } from "@/types/streamer";
