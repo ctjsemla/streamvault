@@ -16,7 +16,11 @@ const fetcher = (url: string) =>
 
 export function StreamerLivePanel({ streamer }: StreamerLivePanelProps) {
   const isTwitch = streamer.primaryPlatform === "twitch" && !!streamer.twitchLogin;
-  const batchUrl = isTwitch ? buildLiveBatchUrl([streamer]) : null;
+  const batchUrl = isTwitch
+    ? buildLiveBatchUrl([streamer], [])
+    : streamer.youtubeChannelId
+      ? buildLiveBatchUrl([], [streamer])
+      : null;
 
   const { data } = useSWR<LiveBatchResponse>(
     batchUrl,

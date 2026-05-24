@@ -101,8 +101,6 @@ async function loadMockRoster(): Promise<Streamer[]> {
 }
 
 export async function getStreamers(): Promise<Streamer[]> {
-  console.log("getStreamers called, mock count:", mockStreamers.length);
-
   if (!shouldUseSanityRoster() || !sanityConfigured) {
     return loadMockRoster();
   }
@@ -140,5 +138,11 @@ export function getRosterFilterOptions(streamers: Streamer[]) {
 export function getTwitchRosterStreamers(streamers: Streamer[]): Streamer[] {
   return streamers.filter(
     (s) => s.primaryPlatform === "twitch" && Boolean(s.twitchLogin)
+  );
+}
+
+export function getYouTubeRosterStreamers(streamers: Streamer[]): Streamer[] {
+  return streamers.filter(
+    (s) => s.primaryPlatform === "youtube" && Boolean(s.youtubeChannelId)
   );
 }

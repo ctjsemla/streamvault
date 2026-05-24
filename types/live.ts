@@ -11,4 +11,6 @@ export type YouTubeLiveBatch = Record<string, LiveStatus>;
 export type LiveBatchResponse = {
   twitch: TwitchLiveBatch;
   youtube: YouTubeLiveBatch;
+  /** Latest upload per channel when not live (video id). */
+  youtubeLatest?: Record<string, string>;
 };

@@ -5,11 +5,14 @@ import { StreamerGrid } from "@/components/roster/StreamerGrid";
 import { RedDivider } from "@/components/shared/RedDivider";
 import { SectionReveal } from "@/components/shared/SectionReveal";
 import { applyCta } from "@/lib/site";
+import { fetchLiveBatchSnapshot } from "@/lib/live-snapshot";
 import { isTwitchConfigured } from "@/lib/twitch-config";
+import { isYouTubeConfigured } from "@/lib/youtube-config";
 import {
   getRosterFilterOptions,
   getStreamers,
   getTwitchRosterStreamers,
+  getYouTubeRosterStreamers,
 } from "@/lib/streamers";
 
 export const metadata: Metadata = {
@@ -22,13 +25,22 @@ export default async function RosterPage() {
   const streamers = await getStreamers();
   const { categories, platforms } = getRosterFilterOptions(streamers);
   const twitchConfigured = isTwitchConfigured();
+  const youtubeConfigured = isYouTubeConfigured();
   const twitchStreamers = getTwitchRosterStreamers(streamers);
+  const youtubeStreamers = getYouTubeRosterStreamers(streamers);
+  const initialBatch = await fetchLiveBatchSnapshot(
+    twitchStreamers,
+    youtubeStreamers
+  );
 
   return (
     <div className="bg-white">
       <LiveNowSection
         twitchConfigured={twitchConfigured}
+        youtubeConfigured={youtubeConfigured}
         twitchStreamers={twitchStreamers}
+        youtubeStreamers={youtubeStreamers}
+        initialBatch={initialBatch}
       />
 
       <section className="px-6 pb-12 pt-10 lg:px-10 lg:pb-16 lg:pt-14">

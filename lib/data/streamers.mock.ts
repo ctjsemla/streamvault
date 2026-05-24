@@ -8,6 +8,7 @@ type RawStreamer = {
   handle: string;
   profileUrl: string;
   avatarUrl: string;
+  youtubeChannelId?: string;
   category: string[];
   followers: number | null;
   avgViewers: number | null;
@@ -167,6 +168,7 @@ const RAW_STREAMERS: RawStreamer[] = [
     profileUrl: "https://www.youtube.com/@WestJett",
     avatarUrl:
       "https://yt3.googleusercontent.com/ytc/AIdro_mUJftxEivgLVKLwiD197P7lWpzEaOz2xdxyFjdLL6I2d4=s160-c-k-c0x00ffffff-no-rj",
+    youtubeChannelId: "UCAKt4p3InTNrYjSJKvx1bsA",
     category: ["Gaming", "Commentary", "Drama", "Valorant"],
     followers: 787000,
     avgViewers: null,
@@ -185,6 +187,7 @@ const RAW_STREAMERS: RawStreamer[] = [
     profileUrl: "https://www.youtube.com/@iijeriichoii",
     avatarUrl:
       "https://yt3.googleusercontent.com/ytc/AIdro_mIiI-gEmAC_EXIwtEQqV8O2d5-I_4mAhEGVbKNeWBPMRA=s160-c-k-c0x00ffffff-no-rj",
+    youtubeChannelId: "UCwWZO7EaFHK-b0vC2uekKqw",
     category: ["Gaming", "Comedy", "Variety"],
     followers: 1220000,
     avgViewers: null,
@@ -201,6 +204,7 @@ const RAW_STREAMERS: RawStreamer[] = [
     handle: "@TCaptainX",
     profileUrl: "https://www.youtube.com/@TCaptainX",
     avatarUrl: "/avatars/tcaptainx.jpg",
+    youtubeChannelId: "UCrZkYs5U8Tvj_ciAYFqshiw",
     category: ["Gaming", "Variety"],
     followers: 767000,
     avgViewers: null,
@@ -234,6 +238,8 @@ function toStreamer(raw: RawStreamer): Streamer {
     platformUrls: { [platform]: raw.profileUrl },
     avatarUrl: raw.avatarUrl,
     twitchLogin: platform === "twitch" ? raw.handle : undefined,
+    youtubeChannelId:
+      platform === "youtube" ? raw.youtubeChannelId : undefined,
     kickUsername: platform === "kick" ? raw.slug : undefined,
     showBrandDeals: false,
   };

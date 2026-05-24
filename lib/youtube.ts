@@ -1,5 +1,6 @@
 import type { LiveStatus } from "@/types/live";
 import { getYouTubeLiveUrl } from "@/lib/platforms";
+import { scrapeYouTubeLiveStatus } from "@/lib/youtube-live-scrape";
 
 export type YouTubeChannelStats = {
   subscriberCount?: number;
@@ -12,7 +13,7 @@ export type YouTubeChannelStats = {
 export async function getYouTubeChannelStats(
   channelId: string
 ): Promise<YouTubeChannelStats> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (!apiKey) {
     return { subscriberCount: 0, viewCount: 0 };
   }
@@ -41,7 +42,92 @@ export async function getYouTubeLiveStatus(
   return batch[channelId] ?? { isLive: false };
 }
 
-/** YouTube live is not used on the public roster (Twitch-only Live Now). */
+async function fetchLiveViaApi(
+  channelId: string,
+  apiKey: string
+): Promise<LiveStatus | null> {
+  const channelsRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}&key=${apiKey}`,
+    { cache: "no-store" }
+  );
+
+  if (!channelsRes.ok) return null;
+
+  const channelsData = await channelsRes.json();
+  const snippet = channelsData.items?.[0]?.snippet;
+  if (snippet?.liveBroadcastContent !== "live") {
+    return { isLive: false };
+  }
+
+  const searchRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&type=video&eventType=live&maxResults=1&key=${apiKey}`,
+    { cache: "no-store" }
+  );
+  if (!searchRes.ok) return null;
+
+  const searchData = await searchRes.json();
+  const videoId = searchData.items?.[0]?.id?.videoId as string | undefined;
+  if (!videoId) return { isLive: false };
+
+  const videoRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${encodeURIComponent(videoId)}&key=${apiKey}`,
+    { cache: "no-store" }
+  );
+  if (!videoRes.ok) return null;
+
+  const videoData = await videoRes.json();
+  const video = videoData.items?.[0];
+  const concurrent = video?.liveStreamingDetails?.concurrentViewers;
+
+  return {
+    isLive: true,
+    viewerCount: concurrent ? Number(concurrent) : undefined,
+    streamUrl: getYouTubeLiveUrl(videoId),
+    embedUrl: videoId,
+  };
+}
+
+async function fetchLiveViaApiBatch(
+  channelIds: string[],
+  apiKey: string
+): Promise<{ results: Record<string, LiveStatus>; apiOk: boolean }> {
+  const results: Record<string, LiveStatus> = {};
+  for (const id of channelIds) {
+    results[id] = { isLive: false };
+  }
+
+  const idsParam = channelIds.map(encodeURIComponent).join(",");
+  const channelsRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${idsParam}&key=${apiKey}`,
+    { cache: "no-store" }
+  );
+
+  if (!channelsRes.ok) {
+    return { results, apiOk: false };
+  }
+
+  const channelsData = await channelsRes.json();
+  const liveChannelIds: string[] = [];
+
+  for (const item of channelsData.items ?? []) {
+    const id = item.id as string;
+    if (item.snippet?.liveBroadcastContent === "live") {
+      liveChannelIds.push(id);
+    } else {
+      results[id] = { isLive: false };
+    }
+  }
+
+  await Promise.all(
+    liveChannelIds.map(async (channelId) => {
+      const status = await fetchLiveViaApi(channelId, apiKey);
+      results[channelId] = status ?? { isLive: false };
+    })
+  );
+
+  return { results, apiOk: true };
+}
+
 export async function getYouTubeLiveStatuses(
   channelIds: string[]
 ): Promise<Record<string, LiveStatus>> {
@@ -51,55 +137,69 @@ export async function getYouTubeLiveStatuses(
 
   if (normalized.length === 0) return {};
 
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
-    return Object.fromEntries(
-      normalized.map((id) => [id, { isLive: false }])
-    );
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+  const output: Record<string, LiveStatus> = {};
+  for (const channelId of normalized) {
+    output[channelId] = { isLive: false };
   }
 
-  try {
-    const output: Record<string, LiveStatus> = {};
-    for (const channelId of normalized) {
-      output[channelId] = { isLive: false };
-    }
+  let apiOk = false;
 
+  if (apiKey) {
+    try {
+      const batch = await fetchLiveViaApiBatch(normalized, apiKey);
+      Object.assign(output, batch.results);
+      apiOk = batch.apiOk;
+    } catch {
+      apiOk = false;
+    }
+  }
+
+  if (!apiKey || !apiOk) {
     await Promise.all(
       normalized.map(async (channelId) => {
-        const searchRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&eventType=live&maxResults=1&key=${apiKey}`,
-          { cache: "no-store" }
-        );
-        if (!searchRes.ok) return;
-
-        const searchData = await searchRes.json();
-        const videoId = searchData.items?.[0]?.id?.videoId as string | undefined;
-        if (!videoId) return;
-
-        const videoRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails,snippet&id=${videoId}&key=${apiKey}`,
-          { cache: "no-store" }
-        );
-        if (!videoRes.ok) return;
-
-        const videoData = await videoRes.json();
-        const video = videoData.items?.[0];
-        const concurrent =
-          video?.liveStreamingDetails?.concurrentViewers;
-
-        output[channelId] = {
-          isLive: true,
-          viewerCount: concurrent ? Number(concurrent) : undefined,
-          streamUrl: getYouTubeLiveUrl(videoId),
-          embedUrl: videoId,
-        };
+        if (output[channelId]?.isLive) return;
+        const scraped = await scrapeYouTubeLiveStatus(channelId);
+        if (scraped.isLive) {
+          output[channelId] = scraped;
+        }
       })
     );
-
-    return output;
-  } catch {
-    return Object.fromEntries(
-      normalized.map((id) => [id, { isLive: false }])
-    );
   }
+
+  return output;
+}
+
+/** Latest public upload per channel (for featured embed when offline). */
+export async function getYouTubeLatestVideoIds(
+  channelIds: string[]
+): Promise<Record<string, string>> {
+  const normalized = Array.from(
+    new Set(channelIds.map((id) => id.trim()).filter(Boolean))
+  );
+  if (normalized.length === 0) return {};
+
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+  if (!apiKey) return {};
+
+  const output: Record<string, string> = {};
+
+  await Promise.all(
+    normalized.map(async (channelId) => {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${encodeURIComponent(channelId)}&type=video&order=date&maxResults=1&key=${apiKey}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const videoId = data.items?.[0]?.id?.videoId as string | undefined;
+        if (videoId) output[channelId] = videoId;
+      } catch {
+        /* skip */
+      }
+    })
+  );
+
+  return output;
 }
