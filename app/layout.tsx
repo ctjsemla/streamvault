@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { RootProviders } from "@/components/providers/RootProviders";
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   },
   description:
     "The premier live streaming talent agency in the United States. Exclusive management and brand partnerships for Twitch, YouTube, Kick, and TikTok Live creators.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

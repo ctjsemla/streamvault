@@ -91,7 +91,7 @@ export function Navbar() {
             : "border-b border-transparent bg-white/0"
         )}
       >
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-6 px-6 lg:px-10">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:gap-6 sm:px-6 lg:px-10">
           <Logo />
 
           <nav className="hidden items-center gap-8 md:flex" aria-label="Main">

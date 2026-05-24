@@ -34,14 +34,19 @@ type LiveNowCard = {
   videoId?: string;
 };
 
-async function fetchLiveBatch(url: string): Promise<LiveBatchResponse> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return { twitch: {}, youtube: {} };
-    return (await res.json()) as LiveBatchResponse;
-  } catch {
-    return { twitch: {}, youtube: {} };
-  }
+function mergeLiveBatch(
+  initial: LiveBatchResponse,
+  next?: LiveBatchResponse
+): LiveBatchResponse {
+  if (!next) return initial;
+  return {
+    twitch: { ...initial.twitch, ...next.twitch },
+    youtube: { ...initial.youtube, ...next.youtube },
+    youtubeLatest: {
+      ...initial.youtubeLatest,
+      ...next.youtubeLatest,
+    },
+  };
 }
 
 function mockLiveCards(
@@ -155,7 +160,13 @@ export function LiveNowSection({
 
   const { data } = useSWR<LiveBatchResponse>(
     batchUrl,
-    batchUrl ? fetchLiveBatch : null,
+    batchUrl
+      ? async (url: string) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("live batch failed");
+          return (await res.json()) as LiveBatchResponse;
+        }
+      : null,
     {
       refreshInterval: 60_000,
       revalidateOnFocus: true,
@@ -163,6 +174,8 @@ export function LiveNowSection({
       fallbackData: initialBatch,
     }
   );
+
+  const batch = mergeLiveBatch(initialBatch, data);
 
   const { headerLabel, cards } = useMemo(() => {
     if (!hasLivePool) {
@@ -175,8 +188,6 @@ export function LiveNowSection({
         cards: mockLiveCards(twitchStreamers, youtubeStreamers),
       };
     }
-
-    const batch = data ?? initialBatch;
 
     const live = sortLiveByViewers(
       getLiveStreamersFromBatch(twitchStreamers, youtubeStreamers, batch)
@@ -201,8 +212,7 @@ export function LiveNowSection({
   }, [
     hasLivePool,
     apisConfigured,
-    data,
-    initialBatch,
+    batch,
     twitchStreamers,
     youtubeStreamers,
   ]);
@@ -214,7 +224,7 @@ export function LiveNowSection({
   const isLatestHeader = headerLabel === "Latest Videos";
 
   return (
-    <section className="border-b border-black/[0.06] bg-[#0A0A0A] px-6 py-10 text-white lg:px-10 lg:py-12">
+    <section className="border-b border-black/[0.06] bg-[#0A0A0A] px-4 py-8 text-white sm:px-6 sm:py-10 lg:px-10 lg:py-12">
       <div className="mx-auto max-w-7xl">
         <div className="flex items-center gap-3">
           {isLiveHeader && (
@@ -234,9 +244,11 @@ export function LiveNowSection({
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 sm:gap-8 lg:grid-cols-2">
           {cards.map((card, index) => {
-            const showEmbedOnMobile = card.showEmbed && index === 0;
+            const showBothEmbedsOnMobile = isLatestHeader;
+            const showEmbedOnMobile =
+              card.showEmbed && (showBothEmbedsOnMobile || index === 0);
             const embedSrc =
               card.showEmbed &&
               card.platform === "twitch" &&
@@ -252,28 +264,27 @@ export function LiveNowSection({
             return (
               <article
                 key={card.streamer.slug}
-                className="overflow-hidden rounded-lg border border-white/10 bg-white/5"
+                className="flex w-full min-w-0 flex-col-reverse overflow-hidden rounded-lg border border-white/10 bg-white/5 sm:flex-col"
               >
-                {card.showEmbed && embedSrc && (
+                {embedSrc && (
                   <div
                     className={cn(
-                      "w-full overflow-hidden bg-black",
+                      "relative aspect-video w-full max-w-full overflow-hidden bg-black",
                       showEmbedOnMobile ? "block" : "hidden md:block"
                     )}
                   >
                     <iframe
                       src={embedSrc}
-                      title={`${card.streamer.name} live on ${card.platform === "youtube" ? "YouTube" : "Twitch"}`}
-                      height={400}
-                      width="100%"
-                      className="border-0"
+                      title={`${card.streamer.name} on ${card.platform === "youtube" ? "YouTube" : "Twitch"}`}
+                      className="absolute inset-0 h-full w-full border-0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                      loading="lazy"
                     />
                   </div>
                 )}
 
-                <div className="flex gap-4 p-5">
+                <div className="flex w-full gap-3 p-4 sm:gap-4 sm:p-5">
                   <StreamerAvatar
                     name={card.streamer.name}
                     avatarUrl={card.streamer.avatarUrl}
@@ -281,7 +292,7 @@ export function LiveNowSection({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-display text-xl font-semibold tracking-tight">
+                      <p className="font-display text-lg font-semibold tracking-tight sm:text-xl">
                         {card.streamer.name}
                       </p>
                       {card.badge === "live" ? (
@@ -291,7 +302,7 @@ export function LiveNowSection({
                         </span>
                       ) : (
                         <span className="label-mono rounded-full border border-white/15 px-2 py-0.5 text-[10px] text-white/50">
-                          {card.videoId ? "Latest upload" : "Offline"}
+                          {card.videoId ? "Latest video" : "Offline"}
                         </span>
                       )}
                     </div>

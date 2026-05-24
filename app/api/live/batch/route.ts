@@ -38,7 +38,21 @@ export async function GET(request: Request) {
     const body: LiveBatchResponse = { twitch, youtube, youtubeLatest };
     return NextResponse.json(body);
   } catch {
-    const body: LiveBatchResponse = { twitch: {}, youtube: {} };
+    const youtubeChannelIds = new URL(request.url).searchParams
+      .get("youtube")
+      ?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const youtubeLatest = youtubeChannelIds?.length
+      ? await getYouTubeLatestVideoIds(youtubeChannelIds)
+      : undefined;
+
+    const body: LiveBatchResponse = {
+      twitch: {},
+      youtube: {},
+      youtubeLatest,
+    };
     return NextResponse.json(body);
   }
 }

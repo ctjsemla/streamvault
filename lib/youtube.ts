@@ -1,6 +1,7 @@
 import type { LiveStatus } from "@/types/live";
 import { getYouTubeLiveUrl } from "@/lib/platforms";
 import { scrapeYouTubeLiveStatus } from "@/lib/youtube-live-scrape";
+import { withYouTubeLatestFallback } from "@/lib/youtube-latest-fallback";
 
 export type YouTubeChannelStats = {
   subscriberCount?: number;
@@ -170,7 +171,7 @@ export async function getYouTubeLiveStatuses(
   return output;
 }
 
-/** Latest public upload per channel (for featured embed when offline). */
+/** Latest public upload per channel (uploads playlist — low quota vs search). */
 export async function getYouTubeLatestVideoIds(
   channelIds: string[]
 ): Promise<Record<string, string>> {
@@ -180,26 +181,51 @@ export async function getYouTubeLatestVideoIds(
   if (normalized.length === 0) return {};
 
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
-  if (!apiKey) return {};
+  if (!apiKey) {
+    return withYouTubeLatestFallback(normalized, {});
+  }
 
   const output: Record<string, string> = {};
 
-  await Promise.all(
-    normalized.map(async (channelId) => {
-      try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${encodeURIComponent(channelId)}&type=video&order=date&maxResults=1&key=${apiKey}`,
-          { cache: "no-store" }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const videoId = data.items?.[0]?.id?.videoId as string | undefined;
-        if (videoId) output[channelId] = videoId;
-      } catch {
-        /* skip */
-      }
-    })
-  );
+  try {
+    const idsParam = normalized.map(encodeURIComponent).join(",");
+    const channelsRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${idsParam}&key=${apiKey}`,
+      { cache: "no-store" }
+    );
 
-  return output;
+    if (channelsRes.ok) {
+      const channelsData = await channelsRes.json();
+      const uploadsByChannel: Record<string, string> = {};
+
+      for (const item of channelsData.items ?? []) {
+        const channelId = item.id as string | undefined;
+        const uploads =
+          item.contentDetails?.relatedPlaylists?.uploads as string | undefined;
+        if (channelId && uploads) uploadsByChannel[channelId] = uploads;
+      }
+
+      await Promise.all(
+        Object.entries(uploadsByChannel).map(async ([channelId, playlistId]) => {
+          try {
+            const itemsRes = await fetch(
+              `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=1&key=${apiKey}`,
+              { cache: "no-store" }
+            );
+            if (!itemsRes.ok) return;
+            const itemsData = await itemsRes.json();
+            const videoId = itemsData.items?.[0]?.snippet?.resourceId
+              ?.videoId as string | undefined;
+            if (videoId) output[channelId] = videoId;
+          } catch {
+            /* skip */
+          }
+        })
+      );
+    }
+  } catch {
+    /* fall through to static fallback */
+  }
+
+  return withYouTubeLatestFallback(normalized, output);
 }
