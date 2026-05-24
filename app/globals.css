@@ -1,27 +1,149 @@
+@import url("https://api.fontshare.com/v2/css?f[]=clash-display@700,600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-display {
+    font-family: "Clash Display", var(--font-sans), system-ui, sans-serif;
+  }
+
+  .font-mono-accent {
+    font-family: var(--font-mono-accent), ui-monospace, monospace;
+  }
+
+  .label-mono {
+    @apply font-mono-accent text-[11px] font-semibold uppercase tracking-[0.12em];
+  }
+
+  .live-pulse-dot {
+    animation: live-pulse 1.5s ease-in-out infinite;
+  }
+
+  .card-hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .card-hover-lift:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 24px rgba(229, 34, 34, 0.1);
+  }
+
+  .roster-card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .roster-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(229, 34, 34, 0.7);
+    box-shadow:
+      0 12px 36px rgba(229, 34, 34, 0.28),
+      0 0 0 1px rgba(229, 34, 34, 0.35);
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #0a0a0a;
+    --primary-foreground: #ffffff;
+    --secondary: #f7f7f7;
+    --secondary-foreground: #0a0a0a;
+    --muted: #f7f7f7;
+    --muted-foreground: #52525b;
+    --accent: #fff0f0;
+    --accent-foreground: #e52222;
+    --destructive: #e52222;
+    --border: rgba(0, 0, 0, 0.08);
+    --input: rgba(0, 0, 0, 0.08);
+    --ring: #e52222;
+    --radius: 0.375rem;
+
+    --sv-red: #e52222;
+    --sv-red-hover: #ff3333;
+    --sv-red-tint: #fff0f0;
+    --sv-black: #0a0a0a;
+    --sv-gray: #52525b;
+    --sv-gray-mid: #a1a1aa;
+    --sv-off-white: #f7f7f7;
+    --sv-card-border: rgba(0, 0, 0, 0.08);
+    --sv-card-border-hover: rgba(0, 0, 0, 0.18);
+    --sv-card-shadow-hover: 0 4px 24px rgba(229, 34, 34, 0.1);
+
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-mono-accent: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  html.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  html.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  html.lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  html.lenis.lenis-scrolling iframe {
+    pointer-events: none;
+  }
+
+  body {
+    @apply bg-white text-[#0A0A0A] antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: "Clash Display", var(--font-sans), system-ui, sans-serif;
   }
 }
