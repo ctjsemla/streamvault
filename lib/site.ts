@@ -18,3 +18,13 @@ export const footerSocial = [
 
 export const siteTagline =
   "Live streaming talent management for the next generation of creators." as const;
+
+export const siteContact = {
+  email: "info@streamerlake.com",
+  office: {
+    street: "1245 Farnam Street, Suite 302",
+    city: "Omaha",
+    state: "NE",
+    zip: "68102",
+  },
+} as const;

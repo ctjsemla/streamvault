@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { applyCta, footerExplore, footerSocial, siteTagline } from "@/lib/site";
+import {
+  applyCta,
+  footerExplore,
+  footerSocial,
+  siteContact,
+  siteTagline,
+} from "@/lib/site";
 
 function FooterLogo() {
   return (
@@ -27,6 +33,20 @@ export function Footer() {
               {siteTagline}
             </p>
             <p className="label-mono text-white/40">Est. 2022</p>
+            <div className="flex flex-col gap-3 text-sm leading-relaxed text-white/60">
+              <a
+                href={`mailto:${siteContact.email}`}
+                className="w-fit text-white/70 transition-colors hover:text-white"
+              >
+                {siteContact.email}
+              </a>
+              <address className="not-italic">
+                {siteContact.office.street}
+                <br />
+                {siteContact.office.city}, {siteContact.office.state}{" "}
+                {siteContact.office.zip}
+              </address>
+            </div>
             <Link
               href="/contact"
               className="label-mono w-fit text-sv-red transition-colors hover:text-sv-red-hover"

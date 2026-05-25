@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { SectionReveal } from "@/components/shared/SectionReveal";
+import { siteContact } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -18,10 +19,21 @@ export default function ContactPage() {
               Send us a message.
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-sv-gray">
-              Use the form below and our team will respond as soon as possible.
-              We don&apos;t publish a public inbox — this keeps our roster and
-              partners protected from spam.
+              Reach us at{" "}
+              <a
+                href={`mailto:${siteContact.email}`}
+                className="font-medium text-[#0A0A0A] underline decoration-sv-red/40 underline-offset-4 transition-colors hover:text-sv-red"
+              >
+                {siteContact.email}
+              </a>{" "}
+              or use the form below — our team will respond as soon as possible.
             </p>
+            <address className="mt-4 not-italic text-sm leading-relaxed text-sv-gray">
+              {siteContact.office.street}
+              <br />
+              {siteContact.office.city}, {siteContact.office.state}{" "}
+              {siteContact.office.zip}
+            </address>
           </SectionReveal>
 
           <SectionReveal className="mt-12">

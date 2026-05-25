@@ -4,6 +4,7 @@ import { ContactForm } from "@/components/contact/ContactForm";
 import { RedDivider } from "@/components/shared/RedDivider";
 import { SectionReveal } from "@/components/shared/SectionReveal";
 import { agencyValues } from "@/lib/data/team.mock";
+import { siteContact } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About",
@@ -102,7 +103,14 @@ export default function AboutPage() {
               Get in touch.
             </h2>
             <p className="mt-4 text-sm text-sv-gray">
-              Send a message through the form below — or visit our{" "}
+              Email us at{" "}
+              <a
+                href={`mailto:${siteContact.email}`}
+                className="text-sv-red hover:text-sv-red-hover"
+              >
+                {siteContact.email}
+              </a>{" "}
+              or send a message through the form below — or visit our{" "}
               <Link href="/contact" className="text-sv-red hover:text-sv-red-hover">
                 contact page
               </Link>
